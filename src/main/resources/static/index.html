@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Task Board Assistant</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --ink: #1c1e21; --muted: #6b7280; --line: #e5e7eb;
+    --user: #2563eb; --user-ink: #fff; --bot: #eef2ff; --accent: #4f46e5;
+    --ok: #16a34a; --no: #dc2626; --wait: #d97706;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); }
+  header { padding: 14px 24px; background: var(--panel); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 14px; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  nav { display: flex; gap: 4px; margin-left: 8px; }
+  nav a { font-size: 12px; padding: 5px 10px; border-radius: 999px; text-decoration: none; color: var(--muted); border: 1px solid var(--line); }
+  nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  header .reset { margin-left: auto; }
+  main { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; padding: 16px 24px; max-width: 1280px; margin: 0 auto; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; min-height: 0; }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  #chat { height: calc(100vh - 140px); }
+  #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 78%; padding: 10px 14px; border-radius: 14px; line-height: 1.4; white-space: pre-wrap; font-size: 14px; }
+  .msg.user { align-self: flex-end; background: var(--user); color: var(--user-ink); border-bottom-right-radius: 4px; }
+  .msg.bot { align-self: flex-start; background: var(--bot); border-bottom-left-radius: 4px; }
+  .msg.sys { align-self: center; color: var(--muted); font-size: 12px; background: none; }
+  .approval { align-self: stretch; border: 1px solid #fcd34d; background: #fffbeb; border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+  .approval .title { font-weight: 600; color: #92400e; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+  .approval code { font-size: 12px; background: #fef3c7; padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+  .approval .actions { display: flex; gap: 8px; margin-top: 10px; }
+  .approval button.ok { background: var(--ok); } .approval button.no { background: var(--no); }
+  form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
+  input[type=text] { flex: 1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
+  button { padding: 10px 14px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font-size: 14px; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  button:disabled { opacity: .5; cursor: default; }
+  .side { display: flex; flex-direction: column; gap: 16px; }
+  ul { list-style: none; margin: 0; padding: 8px 16px 12px; }
+  li { padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; display: flex; gap: 10px; align-items: baseline; }
+  li:last-child { border-bottom: 0; }
+  .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #f3f4f6; color: var(--muted); white-space: nowrap; }
+  .pill.p1 { background: #fee2e2; color: #991b1b; } .pill.p3 { background: #e0f2fe; color: #075985; }
+  .empty { color: var(--muted); font-size: 13px; padding: 12px 16px; }
+  .trace, .tools { padding: 8px 16px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .card { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+  .card .row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .card code { font-size: 12px; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+  .status { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; color: #fff; }
+  .status.pending { background: var(--wait); } .status.accepted { background: var(--ok); }
+  .status.declined { background: var(--no); } .status.executed { background: #0f766e; }
+  .status.superseded { background: #6b7280; }
+  .meta { color: var(--muted); font-size: 12px; }
+  .hint { color: var(--muted); font-size: 12px; padding: 0 16px 12px; }
+  .tool .name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; font-size: 13px; }
+  .tool .desc { margin-top: 4px; font-size: 13px; }
+  .tool .desc mark { background: #fef08a; padding: 0 2px; }
+  .tool .badge { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); margin-left: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Task Board Assistant</h1>
+  <span class="sub">embabel-agent · ConfirmationGuardedTool demo</span>
+  <nav>
+    <a href="/?mode=llm" id="nav-llm">ASK_VIA_LLM</a>
+    <a href="/?mode=pause" id="nav-pause">PAUSE_PROCESS</a>
+  </nav>
+  <button class="ghost reset" id="reset">Reset</button>
+</header>
+<main>
+  <section class="panel" id="chat">
+    <h2 id="chat-title">Chat</h2>
+    <div id="messages"></div>
+    <form id="form">
+      <input type="text" id="input" placeholder="e.g. Add a task to write the release notes, high priority" autocomplete="off" autofocus>
+      <button id="send" type="submit">Send</button>
+    </form>
+  </section>
+  <aside class="side">
+    <section class="panel">
+      <h2>Task board (in memory)</h2>
+      <ul id="tasks"></ul>
+      <div class="empty" id="tasks-empty">No tasks yet.</div>
+    </section>
+    <section class="panel">
+      <h2>Confirmation trail (blackboard)</h2>
+      <div class="hint">ToolCallProposal → ToolCallVerdict → ToolCallOutcome, as recorded by the guard.</div>
+      <div class="trace" id="trace"></div>
+      <div class="empty" id="trace-empty">Nothing proposed yet.</div>
+    </section>
+    <section class="panel">
+      <h2>Tools exposed to the model</h2>
+      <div class="hint" id="tools-hint"></div>
+      <div class="tools" id="tools"></div>
+    </section>
+  </aside>
+</main>
+<script>
+  const mode = new URLSearchParams(location.search).get('mode') === 'pause' ? 'pause' : 'llm';
+  const api = `/api/${mode}`;
+  const sessionId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+  const $ = id => document.getElementById(id);
+  const messages = $('messages'), form = $('form'), input = $('input'), send = $('send');
+  $('nav-' + mode).classList.add('active');
+  $('chat-title').textContent = mode === 'pause'
+    ? 'Chat · ConfirmationMode.PAUSE_PROCESS'
+    : 'Chat · ConfirmationMode.ASK_VIA_LLM';
+  $('tools-hint').textContent = mode === 'pause'
+    ? 'Custom ConfirmationGuardOptions: note appended to the description, verdict prefix "approve_".'
+    : 'Default ConfirmationGuardOptions: note "Requires the user\'s confirmation…", verdict prefix "confirm_".';
+
+  function addMsg(text, cls) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + cls;
+    div.textContent = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+  }
+
+  function escape(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  function renderTasks(tasks) {
+    const ul = $('tasks'); ul.innerHTML = '';
+    $('tasks-empty').style.display = tasks.length ? 'none' : 'block';
+    for (const t of tasks) {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="pill">${t.id}</span><span>${escape(t.title)}</span><span class="pill p${t.priority}">P${t.priority}</span>`;
+      ul.appendChild(li);
+    }
+  }
+
+  function renderTrace(trace) {
+    const box = $('trace'); box.innerHTML = '';
+    const proposals = trace.filter(e => e.kind === 'proposal');
+    $('trace-empty').style.display = proposals.length ? 'none' : 'block';
+    proposals.forEach((p, i) => {
+      const verdict = trace.find(e => e.kind === 'verdict' && e.proposalId === p.proposalId);
+      const outcome = trace.find(e => e.kind === 'outcome' && e.proposalId === p.proposalId);
+      const later = proposals.slice(i + 1).some(q => q.tool === p.tool);
+      let status = 'pending';
+      if (outcome) status = outcome.executed ? 'executed' : 'declined';
+      else if (verdict) status = verdict.accepted ? 'accepted' : 'declined';
+      else if (later) status = 'superseded';
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="row"><span class="status ${status}">${status}</span><strong>${p.tool}</strong><span class="meta">${p.proposalId.slice(0, 8)}</span></div>
+        <div><code>${escape(p.arguments)}</code></div>
+        <div class="meta" style="margin-top:6px">“${escape(p.message)}”</div>
+        ${verdict ? `<div class="meta" style="margin-top:6px">verdict: <b>${verdict.accepted ? 'accepted' : 'declined'}</b> via ${verdict.source}${verdict.note ? ' · “' + escape(verdict.note) + '”' : ''}</div>` : ''}
+        ${outcome ? `<div class="meta">outcome: ${outcome.executed ? 'delegate executed' : 'cancelled'}</div>` : ''}`;
+      box.appendChild(card);
+    });
+  }
+
+  function renderTools(tools) {
+    const box = $('tools'); box.innerHTML = '';
+    for (const t of tools) {
+      const isVerdict = /^(confirm|approve)_/.test(t.name);
+      const isGuarded = t.name === 'create_task';
+      const desc = escape(t.description).replace(/(Requires the user's confirmation before it takes effect\.|The user approves this in the app before it takes effect\.)/, '<mark>$1</mark>');
+      const card = document.createElement('div');
+      card.className = 'card tool';
+      card.innerHTML = `<div><span class="name">${t.name}</span>${isGuarded ? '<span class="badge">guarded</span>' : ''}${isVerdict ? '<span class="badge">verdict tool</span>' : ''}</div><div class="desc">${desc}</div>`;
+      box.appendChild(card);
+    }
+  }
+
+  let approvalCard = null;
+  function renderAwaiting(awaiting) {
+    if (approvalCard) { approvalCard.remove(); approvalCard = null; }
+    if (!awaiting) return;
+    approvalCard = document.createElement('div');
+    approvalCard.className = 'approval';
+    approvalCard.innerHTML = `
+      <div class="title">Process is WAITING · ToolCallConfirmationRequest</div>
+      <div>${escape(awaiting.message)}</div>
+      <div style="margin-top:6px"><code>${awaiting.tool}(${escape(awaiting.arguments)})</code></div>
+      <div class="actions"><button class="ok" data-accept="true">Approve</button><button class="no" data-accept="false">Decline</button></div>`;
+    approvalCard.querySelectorAll('button').forEach(b => b.addEventListener('click', () => resolve(b.dataset.accept === 'true')));
+    messages.appendChild(approvalCard);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function apply(data) {
+    renderTasks(data.tasks); renderTrace(data.trace); renderAwaiting(data.awaiting);
+  }
+
+  async function resolve(accepted) {
+    approvalCard.querySelectorAll('button').forEach(b => b.disabled = true);
+    addMsg(accepted ? 'Approved in the app' : 'Declined in the app', 'sys');
+    const thinking = addMsg('…', 'sys');
+    try {
+      const r = await fetch(`${api}/resolve`, { method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ sessionId, accepted }) });
+      if (!r.ok) throw new Error('server returned ' + r.status);
+      const data = await r.json();
+      thinking.remove();
+      data.replies.forEach(t => addMsg(t, 'bot'));
+      apply(data);
+    } catch (err) {
+      thinking.textContent = 'Error: ' + err;
+    }
+  }
+
+  async function refresh() {
+    const [s, t] = await Promise.all([fetch(`${api}/state/${sessionId}`), fetch(`${api}/tools`)]);
+    apply(await s.json()); renderTools(await t.json());
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    addMsg(text, 'user');
+    input.value = ''; send.disabled = true;
+    const thinking = addMsg('…', 'sys');
+    try {
+      const r = await fetch(`${api}/chat`, { method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ sessionId, message: text }) });
+      if (!r.ok) throw new Error('server returned ' + r.status);
+      const data = await r.json();
+      thinking.remove();
+      if (!data.replies.length && !data.awaiting) addMsg('(no reply)', 'sys');
+      data.replies.forEach(t => addMsg(t, 'bot'));
+      apply(data);
+    } catch (err) {
+      thinking.textContent = 'Error: ' + err;
+    } finally {
+      send.disabled = false; input.focus();
+    }
+  });
+
+  $('reset').addEventListener('click', async () => {
+    await fetch('/api/reset', { method: 'POST' });
+    location.reload();
+  });
+
+  addMsg(mode === 'pause'
+    ? 'Hi. I can add tasks to the board. The app will ask you to approve before one is created.'
+    : 'Hi. I can add tasks to the board. I will ask you to confirm before I create one.', 'bot');
+  refresh();
+</script>
+</body>
+</html>
