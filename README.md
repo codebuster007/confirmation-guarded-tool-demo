@@ -1,5 +1,7 @@
 # confirmation-guarded-tool-demo
 
+https://github.com/user-attachments/assets/80ab97a5-2909-4810-9c4d-22249ede2f97
+
 A small Spring Boot chat app that shows `ConfirmationGuardedTool` from
 [embabel/embabel-agent#1550](https://github.com/embabel/embabel-agent/issues/1550) in action.
 Tasks live in memory. Gemini is the model.
