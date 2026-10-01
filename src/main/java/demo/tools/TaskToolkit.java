@@ -2,7 +2,7 @@ package demo.tools;
 
 import com.embabel.agent.api.tool.Tool;
 import com.embabel.agent.api.tool.hitl.ConfirmationGuardedTool;
-import com.embabel.agent.api.tool.hitl.LlmConfirmation;
+import com.embabel.agent.api.tool.hitl.ConfirmationGuardedTool;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import demo.agent.DemoMode;
 import demo.tasks.Task;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  * The tools the chat agents expose to the model.
  *
  * <p>{@code create_task} is a plain typed tool with a side effect. It is wrapped once per
- * {@link DemoMode} with {@link LlmConfirmation#guard}, so the only difference between the
+ * {@link DemoMode} with {@link ConfirmationGuardedTool#of}, so the only difference between the
  * two pages is the {@code ConfirmationMode} and {@code ConfirmationGuardOptions} the mode
  * supplies. {@code list_tasks} is not guarded.
  */
@@ -58,7 +58,7 @@ public class TaskToolkit {
         );
 
         for (DemoMode mode : DemoMode.values()) {
-            ConfirmationGuardedTool guarded = LlmConfirmation.guard(
+            ConfirmationGuardedTool guarded = ConfirmationGuardedTool.of(
                     createTask,
                     this::confirmationMessage,
                     mode.confirmationMode(),

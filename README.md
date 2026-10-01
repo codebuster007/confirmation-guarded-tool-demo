@@ -67,7 +67,7 @@ provider's key, and change `embabel.models.default-llm` in `application.properti
 demo
 ├── tasks   Task, TaskBoard               the in-memory domain, nothing agent-specific
 ├── tools   TaskToolkit                   create_task and list_tasks; create_task is wrapped
-│                                         once per DemoMode with LlmConfirmation.guard(...)
+│                                         once per DemoMode with ConfirmationGuardedTool.of(...)
 ├── agent   DemoMode                      the two pages: ConfirmationMode + ConfirmationGuardOptions + agent name
 │           AskViaLlmChatAgent            @Agent for ASK_VIA_LLM
 │           PauseProcessChatAgent         @Agent for PAUSE_PROCESS
