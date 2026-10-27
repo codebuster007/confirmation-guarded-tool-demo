@@ -52,6 +52,13 @@ public class ChatController {
         return toolkit.forMode(DemoMode.fromPath(mode)).stream().map(ToolInfo::of).toList();
     }
 
+    /** Make the next task creation fail once, to demonstrate retry after a confirmed tool throws. */
+    @PostMapping("/board/fail-next")
+    public Map<String, String> failNext() {
+        board.failNextAdd();
+        return Map.of("status", "next create_task will fail once");
+    }
+
     @PostMapping("/reset")
     public Map<String, String> reset() {
         sessions.clear();

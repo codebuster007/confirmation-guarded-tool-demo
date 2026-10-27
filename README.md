@@ -63,6 +63,16 @@ To use another provider, swap the starter dependency in `pom.xml` (for example
 `embabel-agent-starter-openai` or `embabel-agent-starter-anthropic`), supply that
 provider's key, and change `embabel.models.default-llm` in `application.properties`.
 
+## Simulating a failed tool call
+
+To see what happens when the confirmed tool throws, arm a one-off failure before approving:
+
+```bash
+curl -X POST http://localhost:8090/api/board/fail-next
+```
+
+The next `create_task` throws once. The proposal stays accepted with no outcome, so the model can call the verdict tool again (or `create_task` with the same arguments) and the task is created on the retry without asking the user a second time.
+
 ## Where to look
 
 ```
